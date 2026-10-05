@@ -4,157 +4,192 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Oni Maskesi AR - Direct Three.js</title>
-
-    <!-- Doğrudan Kararlı Three.js ve MindAR Face ThreeJS CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-three.prod.js"></script>
+    <title>Oni Maskesi AR - eregy</title>
 
     <style>
-      body {
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body,
+      html {
         margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
         background: #000;
-        font-family: sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
+      /* AYNA MODU: Hem masaüstü hem mobilde doğal ayna yansıması */
       #container {
         width: 100vw;
         height: 100vh;
-        position: relative;
-        overflow: hidden;
-      }
-      #log-panel {
-        position: fixed;
-        bottom: 0;
+        position: absolute;
+        top: 0;
         left: 0;
-        width: 100%;
-        height: 110px;
-        background: rgba(0, 0, 0, 0.85);
-        color: #00ff66;
-        font-family: monospace;
-        font-size: 12px;
-        padding: 10px;
-        box-sizing: border-box;
-        overflow-y: scroll;
+        overflow: hidden;
+        transform: scaleX(-1);
+        -webkit-transform: scaleX(-1);
+      }
+      /* SOL ÜST EREGY MARKASI */
+      #brand {
+        position: fixed;
+        top: 20px;
+        left: 20px;
         z-index: 999999;
-        border-top: 2px solid #00ff66;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: lowercase;
+        color: #ffffff;
+        text-shadow:
+          0 0 12px rgba(255, 45, 85, 0.8),
+          0 0 24px rgba(255, 45, 85, 0.4);
+        user-select: none;
+        pointer-events: none;
+      }
+      #brand span {
+        color: #ff2d55;
+      }
+      /* Mobil & Masaüstü Canlı Durum Bildirimi */
+      #status-pill {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 15, 15, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #00ff88;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 999999;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
       }
     </style>
 
-    <script>
-      function log(msg, color = "#00ff66") {
-        const panel = document.getElementById("log-panel");
-        if (panel) {
-          const line = document.createElement("div");
-          line.style.color = color;
-          line.innerText = `> ${msg}`;
-          panel.appendChild(line);
-          panel.scrollTop = panel.scrollHeight;
+    <!-- Modern Import Maps (ES Module) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "mindar-face-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
         }
       }
     </script>
   </head>
   <body>
+    <div id="brand">eregy<span>.</span></div>
     <div id="container"></div>
-    <div id="log-panel">Sistem başlatılıyor...</div>
+    <div id="status-pill">Kamera ve yüz taranıyor...</div>
 
-    <script>
-      const container = document.getElementById("container");
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+      import { MindARThree } from "mindar-face-three";
+
+      const statusPill = document.getElementById("status-pill");
+
+      function updateStatus(text, color = "#00ff88", autoHide = false) {
+        statusPill.innerText = text;
+        statusPill.style.color = color;
+        if (autoHide) {
+          setTimeout(() => {
+            statusPill.style.opacity = "0";
+          }, 2500);
+        } else {
+          statusPill.style.opacity = "1";
+        }
+      }
 
       async function initAR() {
         try {
-          log("MindAR Face başlatılıyor...");
-
-          // MindAR ThreeJS Motoru
-          const mindarThree = new window.MINDAR.FACE.MindARThree({
-            container: container,
+          const mindarThree = new MindARThree({
+            container: document.getElementById("container"),
           });
 
           const { renderer, scene, camera } = mindarThree;
 
-          // Sahne Işıkları
-          const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
+          // Sahne Işıkları (Canlı ve parlak detaylar için)
+          const ambientLight = new THREE.AmbientLight(0xffffff, 2.6);
           scene.add(ambientLight);
 
-          const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-          dirLight.position.set(0, 1, 1);
+          const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+          dirLight.position.set(0, 1.2, 1.2);
           scene.add(dirLight);
 
-          // anchorIndex 168 (Burun kökü / alın ortası)
+          // anchorIndex 168 (Burun kökü / alın altı)
           const anchor = mindarThree.addAnchor(168);
 
-          // 1. TEST KÜRESİ (Yüz takibi anında görünmesi için)
-          const testSphereGeo = new THREE.SphereGeometry(0.08, 16, 16);
-          const testSphereMat = new THREE.MeshBasicMaterial({
-            color: 0xffff00,
-          });
-          const testSphere = new THREE.Mesh(testSphereGeo, testSphereMat);
-          testSphere.position.set(0, -0.05, 0.1);
-          anchor.group.add(testSphere);
-
-          // 2. ONI MASKESİNİ YÜKLE
-          log("oni_mask.glb yükleniyor (9.3 MB)...");
-          const loader = new THREE.GLTFLoader();
+          const loader = new GLTFLoader();
 
           loader.load(
             "./oni_mask.glb",
             (gltf) => {
               const model = gltf.scene;
 
-              // Modeli otomatik merkezle ve boyutunu kontrol altına al
+              // 1. Pivot Merkezleme
               const box = new THREE.Box3().setFromObject(model);
+              const center = box.getCenter(new THREE.Vector3());
               const size = box.getSize(new THREE.Vector3());
 
-              // Eğer model devasa ise (örn: 10 birimden büyükse) normalize et
+              model.position.x += model.position.x - center.x;
+              model.position.y += model.position.y - center.y;
+              model.position.z += model.position.z - center.z;
+
+              const maskContainer = new THREE.Group();
+              maskContainer.add(model);
+
+              // 2. Yüze Tam Oturma Ölçeği (Genişlik & Yükseklik)
               const maxDim = Math.max(size.x, size.y, size.z);
-              const scaleFactor = 0.5 / (maxDim || 1); // İnsan yüzü ölçeğine sabitle
+              const scaleFactor = 1.62 / (maxDim || 1);
+              maskContainer.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-              model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-              model.position.set(0, -0.05, 0.05); // Yüze hafif öne oturt
+              // 3. İnce Ayar Pozisyonu:
+              // Y: -0.082 göz deliklerini tam göz hizana indirir
+              // Z: 0.17 burun ve yanakların öne çıkmasını sağlar
+              maskContainer.position.set(0, -0.082, 0.17);
 
-              anchor.group.add(model);
-              log("oni_mask.glb yüklendi ve sahneye bağlandı!", "#00ffff");
+              anchor.group.add(maskContainer);
+              updateStatus("Hazır! Yüzünüzü gösterin.", "#00ffff");
             },
-            (xhr) => {
-              if (xhr.lengthComputable) {
-                const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                if (percent % 25 === 0) log(`Yükleniyor: %${percent}`);
-              }
-            },
-            (error) => {
-              log("MODEL YÜKLEME HATASI! Dosya açılamadı.", "#ff3333");
-              console.error(error);
+            undefined,
+            (err) => {
+              updateStatus("Model yüklenemedi!", "#ff3333");
+              console.error(err);
             },
           );
 
-          // Yüz algılama takibi
+          // Yüz algılama dinleyicisi
           let wasVisible = false;
-          mindarThree.renderer.setAnimationLoop(() => {
+          renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
 
-            // anchor.group.visible durumu doğrudan kameranın yüzü görüp görmediğini verir
             if (anchor.group.visible && !wasVisible) {
-              log("BİNGO! YÜZ KİLİTLENDİ!", "#ffff00");
+              updateStatus("Yüz Kilitlendi", "#00ff88", true);
               wasVisible = true;
             } else if (!anchor.group.visible && wasVisible) {
-              log("Yüz görüş alanından çıktı...", "#ff5555");
+              updateStatus("Yüz aranıyor...", "#ffaa00");
               wasVisible = false;
             }
           });
 
-          // Kamerayı ve AR'ı başlat
           await mindarThree.start();
-          log("Kamera ve Yüz Algılayıcı Aktif! Yüzünüzü gösterin.");
         } catch (err) {
-          log(`HATA: ${err.message}`, "#ff3333");
-          console.error(err);
+          updateStatus(`HATA: ${err.message}`, "#ff3333");
         }
       }
 
-      window.addEventListener("DOMContentLoaded", initAR);
+      initAR();
     </script>
   </body>
 </html>
