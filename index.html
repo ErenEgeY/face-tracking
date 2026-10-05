@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Oni Maskesi WebAR</title>
+
+    <!-- A-Frame 3D Motoru -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <!-- MindAR Yüz Takip Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-aframe.prod.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: sans-serif;
+        color: white;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 12px 24px;
+        border-radius: 8px;
+        z-index: 999;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Yüz Taranıyor & Maske Yükleniyor...</div>
+
+    <a-scene
+      mindar-face
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+    >
+      <a-assets>
+        <!-- Oni Maskesi 3D Modelin (aynı klasörde oni_mask.glb olmalı) -->
+        <a-asset-item id="oniModel" src="oni_mask.glb"></a-asset-item>
+
+        <!-- Kafanın arkasındaki kısımları gizleyen görünmez kafa modeli -->
+        <a-asset-item
+          id="headModel"
+          src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/examples/face-tracking/assets/sparkar/headOccluder.glb"
+        ></a-asset-item>
+      </a-assets>
+
+      <a-camera active="false" position="0 0 0"></a-camera>
+
+      <!-- 1. Görünmez Kafa (Occluder): Kafanı çevirince maskenin arkası havada asılı kalmaz -->
+      <a-entity mindar-face-target="anchorIndex: 168">
+        <a-gltf-model
+          mindar-face-occluder
+          src="#headModel"
+          position="0 -0.3 0.15"
+          rotation="0 0 0"
+          scale="0.065 0.065 0.065"
+        >
+        </a-gltf-model>
+      </a-entity>
+
+      <!-- 2. Oni Maskesi Bağlantı Noktası -->
+      <a-entity mindar-face-target="anchorIndex: 168">
+        <a-gltf-model
+          src="#oniModel"
+          position="0 0 0"
+          rotation="0 0 0"
+          scale="1 1 1"
+        >
+        </a-gltf-model>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const scene = document.querySelector("a-scene");
+      const loading = document.getElementById("loading");
+
+      scene.addEventListener("arReady", () => {
+        loading.style.display = "none";
+      });
+    </script>
+  </body>
+</html>
